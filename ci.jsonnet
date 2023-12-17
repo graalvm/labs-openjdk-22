@@ -7,7 +7,7 @@ local labsjdk_builder_version = "181ae3a6077f9bf0a117cc34562c33e871cd4ede";
 local contains(str, needle) = std.findSubstr(needle, str) != [];
 
 {
-    overlay: "616937561244a0b2c6ff8e001b11b4e304a85a8a",
+    overlay: "83f6526efa92716d9f227ffd98ff9a30a89d5396",
     specVersion: "3",
 
     mxDependencies:: {
@@ -246,7 +246,7 @@ local contains(str, needle) = std.findSubstr(needle, str) != [];
     # Downstream Graal branch to test against. If you change this value to anything but
     # "master", you must create an ol-jira issue to change it back to master once the
     # next JVMCI release has been made. Add the issue id as a comment here.
-    local downstream_branch = "labsjdk/automation-12-8-2023-8501",
+    local downstream_branch = "master",
 
     local clone_graal(defs) = {
         # Checkout the graal-enterprise repo to the "_gate" version of the

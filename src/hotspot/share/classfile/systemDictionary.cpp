@@ -1111,13 +1111,12 @@ InstanceKlass* SystemDictionary::load_shared_lambda_proxy_class(InstanceKlass* i
   if (loaded_ik != nullptr) {
     assert(shared_nest_host->is_same_class_package(ik),
            "lambda proxy class and its nest host must be in the same package");
+    // The lambda proxy class and its nest host have the same class loader and class loader data,
+    // as verified in SystemDictionaryShared::add_lambda_proxy_class()
+    assert(shared_nest_host->class_loader() == class_loader(), "mismatched class loader");
+    assert(shared_nest_host->class_loader_data() == class_loader_data(class_loader), "mismatched class loader data");
+    ik->set_nest_host(shared_nest_host);
   }
-
-  // The lambda proxy class and its nest host have the same class loader and class loader data,
-  // as verified in SystemDictionaryShared::add_lambda_proxy_class()
-  assert(shared_nest_host->class_loader() == class_loader(), "mismatched class loader");
-  assert(shared_nest_host->class_loader_data() == class_loader_data(class_loader), "mismatched class loader data");
-  ik->set_nest_host(shared_nest_host);
 
   return loaded_ik;
 }
@@ -1800,8 +1799,8 @@ bool SystemDictionary::add_loader_constraint(Symbol* class_name,
 // Add entry to resolution error table to record the error when the first
 // attempt to resolve a reference to a class has failed.
 void SystemDictionary::add_resolution_error(const constantPoolHandle& pool, int which,
-                                            Symbol* error, Symbol* message,
-                                            Symbol* cause, Symbol* cause_msg) {
+                                            Symbol* error, const char* message,
+                                            Symbol* cause, const char* cause_msg) {
   {
     MutexLocker ml(Thread::current(), SystemDictionary_lock);
     ResolutionErrorEntry* entry = ResolutionErrorTable::find_entry(pool, which);
@@ -1818,7 +1817,8 @@ void SystemDictionary::delete_resolution_error(ConstantPool* pool) {
 
 // Lookup resolution error table. Returns error if found, otherwise null.
 Symbol* SystemDictionary::find_resolution_error(const constantPoolHandle& pool, int which,
-                                                Symbol** message, Symbol** cause, Symbol** cause_msg) {
+                                                const char** message,
+                                                Symbol** cause, const char** cause_msg) {
 
   {
     MutexLocker ml(Thread::current(), SystemDictionary_lock);

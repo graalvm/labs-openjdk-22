@@ -257,9 +257,6 @@ local contains(str, needle) = std.findSubstr(needle, str) != [];
         run+: [
             ["git", "clone", defs.graal_enterprise_url],
 
-            # Reset mx to the version expected by Graal
-            ["git", "-C", "$MX_HOME", "reset", "--hard", ["python3", "-c", "import json; print(json.load(open('" + self.path("graal-enterprise/common.json") + "'))['mx_version'])"]],
-
             # This puts cygwin on the PATH so that `test` and `cat` are available
             ["set-export", "OLD_PATH", "${PATH}"],
             ["set-export", "PATH", "${JIB_PATH}"],
@@ -268,6 +265,10 @@ local contains(str, needle) = std.findSubstr(needle, str) != [];
             ["test", "-f", "graal-enterprise.commit", "||", "echo", branch, ">graal-enterprise.commit"],
             ["git", "-C", "graal-enterprise", "checkout", ["cat", "graal-enterprise.commit"]],
             ["git", "-C", "graal-enterprise", "rev-list", "-n", "1", "HEAD", ">graal-enterprise.commit"],
+
+            # Reset mx to the version expected by Graal
+            ["git", "-C", "$MX_HOME", "reset", "--hard", ["python3", "-c", "import json; print(json.load(open('" + self.path("graal-enterprise/common.json") + "'))['mx_version'])"]],
+
 
             # Restore PATH as cygwin must not be on the PATH when building Graal.
             ["set-export", "PATH", "${OLD_PATH}"],

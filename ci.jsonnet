@@ -53,6 +53,7 @@ local contains(str, needle) = std.findSubstr(needle, str) != [];
         name+: "-windows-cygwin",
         os:: "windows",
         environment+: {
+            PYTHONIOENCODING: "utf-8",
             JIB_PATH: "$CYGWIN\\bin;$PATH",
             ZLIB_BUNDLING: "bundled"
         },

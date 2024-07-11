@@ -594,17 +594,6 @@ void os::init_system_properties_values() {
 #undef EXTENSIONS_DIR
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// breakpoint support
-
-void os::breakpoint() {
-  BREAKPOINT;
-}
-
-extern "C" void breakpoint() {
-  // use debugger to set breakpoint here
-}
-
 // retrieve memory information.
 // Returns false if something went wrong;
 // content of pmi undefined in this case.
@@ -770,10 +759,8 @@ bool os::create_thread(Thread* thread, ThreadType thr_type,
   guarantee(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) == 0, "???");
 
   // Make sure we run in 1:1 kernel-user-thread mode.
-  if (os::Aix::on_aix()) {
-    guarantee(pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM) == 0, "???");
-    guarantee(pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED) == 0, "???");
-  }
+  guarantee(pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM) == 0, "???");
+  guarantee(pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED) == 0, "???");
 
   // Start in suspended state, and in os::thread_start, wake the thread up.
   guarantee(pthread_attr_setsuspendstate_np(&attr, PTHREAD_CREATE_SUSPENDED_NP) == 0, "???");
@@ -1279,22 +1266,10 @@ void os::print_memory_info(outputStream* st) {
 
   os::Aix::meminfo_t mi;
   if (os::Aix::get_meminfo(&mi)) {
-    if (os::Aix::on_aix()) {
-      st->print_cr("physical total : " SIZE_FORMAT, mi.real_total);
-      st->print_cr("physical free  : " SIZE_FORMAT, mi.real_free);
-      st->print_cr("swap total     : " SIZE_FORMAT, mi.pgsp_total);
-      st->print_cr("swap free      : " SIZE_FORMAT, mi.pgsp_free);
-    } else {
-      // PASE - Numbers are result of QWCRSSTS; they mean:
-      // real_total: Sum of all system pools
-      // real_free: always 0
-      // pgsp_total: we take the size of the system ASP
-      // pgsp_free: size of system ASP times percentage of system ASP unused
-      st->print_cr("physical total     : " SIZE_FORMAT, mi.real_total);
-      st->print_cr("system asp total   : " SIZE_FORMAT, mi.pgsp_total);
-      st->print_cr("%% system asp used : %.2f",
-        mi.pgsp_total ? (100.0f * (mi.pgsp_total - mi.pgsp_free) / mi.pgsp_total) : -1.0f);
-    }
+    st->print_cr("physical total : " SIZE_FORMAT, mi.real_total);
+    st->print_cr("physical free  : " SIZE_FORMAT, mi.real_free);
+    st->print_cr("swap total     : " SIZE_FORMAT, mi.pgsp_total);
+    st->print_cr("swap free      : " SIZE_FORMAT, mi.pgsp_free);
   }
   st->cr();
 
@@ -2029,7 +2004,7 @@ static bool checked_mprotect(char* addr, size_t size, int prot) {
   //
   // See http://publib.boulder.ibm.com/infocenter/pseries/v5r3/index.jsp?topic=/com.ibm.aix.basetechref/doc/basetrf1/mprotect.htm
 
-  Events::log(nullptr, "Protecting memory [" INTPTR_FORMAT "," INTPTR_FORMAT "] with protection modes %x", p2i(addr), p2i(addr+size), prot);
+  Events::log_memprotect(nullptr, "Protecting memory [" INTPTR_FORMAT "," INTPTR_FORMAT "] with protection modes %x", p2i(addr), p2i(addr+size), prot);
   bool rc = ::mprotect(addr, size, prot) == 0 ? true : false;
 
   if (!rc) {
@@ -2186,15 +2161,6 @@ size_t os::vm_min_address() {
   // address here.
   assert(is_aligned(_vm_min_address_default, os::vm_allocation_granularity()), "Sanity");
   return _vm_min_address_default;
-}
-
-// Used to convert frequent JVM_Yield() to nops
-bool os::dont_yield() {
-  return DontYieldALot;
-}
-
-void os::naked_yield() {
-  sched_yield();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2383,9 +2349,7 @@ void os::init(void) {
   }
 
   // Reset the perfstat information provided by ODM.
-  if (os::Aix::on_aix()) {
-    libperfstat::perfstat_reset();
-  }
+  libperfstat::perfstat_reset();
 
   // Now initialize basic system properties. Note that for some of the values we
   // need libperfstat etc.
@@ -2956,9 +2920,7 @@ void os::Aix::initialize_libo4() {
   }
 }
 
-// AIX: initialize the libperfstat library.
 void os::Aix::initialize_libperfstat() {
-  assert(os::Aix::on_aix(), "AIX only");
   if (!libperfstat::init()) {
     trcVerbose("libperfstat initialization failed.");
     assert(false, "libperfstat initialization failed");
